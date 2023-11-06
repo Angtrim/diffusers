@@ -713,12 +713,9 @@ class StableDiffusionControlNetImg2ImgPipeline(
     # Copied from diffusers.pipelines.stable_diffusion.pipeline_stable_diffusion_img2img.StableDiffusionImg2ImgPipeline.get_timesteps
     def get_timesteps(self, num_inference_steps, strength, device):
         # get the original timestep using init_timestep
-        init_timestep = min(int(num_inference_steps * strength), num_inference_steps)
+        timesteps = self.scheduler.timesteps[0 :]
 
-        t_start = max(num_inference_steps - init_timestep, 0)
-        timesteps = self.scheduler.timesteps[t_start * self.scheduler.order :]
-
-        return timesteps, num_inference_steps - t_start
+        return timesteps, num_inference_steps
 
     # Copied from diffusers.pipelines.stable_diffusion.pipeline_stable_diffusion_img2img.StableDiffusionImg2ImgPipeline.prepare_latents
     def prepare_latents(self, image, timestep, batch_size, num_images_per_prompt, dtype, device, generator=None):
@@ -1036,7 +1033,7 @@ class StableDiffusionControlNetImg2ImgPipeline(
         # 5. Prepare timesteps
         self.scheduler.set_timesteps(num_inference_steps, device=device)
         timesteps, num_inference_steps = self.get_timesteps(num_inference_steps, strength, device)
-        latent_timestep = timesteps[:1].repeat(batch_size * num_images_per_prompt)
+        latent_timestep = np.array([self.scheduler.num_train_timesteps*strength]).astype(np.int64).repeat(batch_size * num_images_per_prompt)
 
         # 6. Prepare latent variables
         latents = self.prepare_latents(
